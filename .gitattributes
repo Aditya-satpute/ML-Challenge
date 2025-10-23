@@ -1,0 +1,27 @@
+# Set the default behavior to automatically detect text files
+# and normalize all line endings to LF (Unix-style) in the repository.
+* text=auto eol=lf
+
+# Explicitly declare file types that should always be LF
+# (especially important for scripts that will fail with CRLF)
+*.css     text eol=lf
+*.csv     text eol=lf
+*.html    text eol=lf
+*.js      text eol=lf
+*.json    text eol=lf
+*.md      text eol=lf
+*.py      text eol=lf
+*.sh      text eol=lf
+*.ts      text eol=lf
+*.tsx     text eol=lf
+*.txt     text eol=lf
+*.xml     text eol=lf
+*.yml     text eol=lf
+
+# Explicitly declare file types that are binary and should not be touched
+*.png     binary
+*.jpg     binary
+*.jpeg    binary
+*.gif     binary
+*.pdf     binary
+*.zip     binary

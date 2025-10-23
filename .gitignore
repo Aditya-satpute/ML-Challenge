@@ -1,0 +1,21 @@
+# Ignore all output folders
+outputs/
+outputs_boost/
+outputs_perunit/
+
+# Ignore large model/data files specifically
+*.joblib
+
+# Ignore common Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore environment files
+.env
+.venv
+venv/
+
+# Ignore Jupyter Notebook checkpoints
+.ipynb_checkpoints
