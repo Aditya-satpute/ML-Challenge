@@ -1,65 +1,49 @@
-# ML-Challenge
+# Smart Product Pricing : End‑to‑End Solution (Text‑Only Baseline + Optional Images)
 
-# Smart Product Pricing : 1-Page Technical Note
-**Team:** AlgoRisers  
-**Members:** Aditya Satpute, Vansh Shrivastava, Kanika Shrivastava, Anshika Moundekar 
-**Date:** 11 Oct 2025
+This folder contains a **ready‑to‑run** baseline you can submit to the hackathon.
+It trains on `catalog_content` using TF‑IDF + handcrafted numeric features, predicts
+`price` for the test set, and writes `outputs/test_out.csv` in the required format.
 
-## Executive Summary
-We predict product prices using a lightweight **text-first** pipeline that combines TF-IDF features (word 1–2g + `char_wb` 3–5g) from `catalog_content` with **regex-derived quantity signals** (pack size, total grams/ml, per-unit measures). A **Ridge** regressor is trained on **log-prices** with light **winsorization** and 5-fold CV to align with the SMAPE metric; predictions are clipped ≥ 0. No external data or lookups are used.
+> **Metric:** SMAPE (0–200%). Lower is better.  
+> **Rules:** No external price lookup. Images optional.
 
----
+## Quickstart
+```bash
+# 1) Create and activate a fresh virtual environment (recommended)
+python -m venv .venv && source .venv/bin/activate  # Windows: .venv\Scripts\activate
 
-## Methodology Used
-### Problem Framing
-- Supervised regression with **SMAPE** as the target evaluation metric (relative-error sensitive).
-- Key drivers surfaced in EDA: **brand/category tokens** and **effective quantity** (unit size × pack count).
-- Text often encodes units in mixed formats (`3x200g`, `12 fl oz`, `Pack of 6`) → normalize via regex.
+# 2) Install packages
+pip install -r requirements.txt
 
-### Model Architecture / Algorithms
-- **Feature extractors**
-  - **Word TF-IDF:** `ngram_range=(1,2)`, `min_df=3`, `max_features=300k`, `sublinear_tf=True`.
-  - **Char TF-IDF (`char_wb`):** `ngram_range=(3,5)`, `min_df=10`, `max_features=300k`, `sublinear_tf=True`.
-  - **Numeric regex block:**  
-    - `pack_qty`, normalized `g_total` (grams) & `ml_total` (milliliters),  
-    - derived: `total_units_g/ml`, `per_unit_g/ml`,  
-    - text shape: `n_chars`, `n_words`, `n_digits`,  
-    - flags: `is_weight`, `is_liquid`, `has_organic`, `has_family`, `has_sugarfree`.
-  - Numeric features scaled with `StandardScaler(with_mean=False)`.
-- **Fusion:** sparse `hstack([word_tfidf, char_tfidf, numeric])` (CSR).
-- **Regressor:** `Ridge(alpha=3.0, max_iter=10000)` trained on **log1p(price)**.
+# 3) Place the hackathon dataset at: ./student_resource/dataset
+#    (This is already present in your zip. Paths below assume that layout.)
+ls student_resource/dataset
+# -> train.csv  test.csv  sample_test.csv  sample_test_out.csv
 
-### Training & Validation
-- **Preprocessing:** strip `"Item Name:"`, normalize `× → x`, lowercase.
-- **Target:** `y = log1p(price)`; labels **winsorized** at 1% tails to reduce outlier dominance.
-- **Validation:** `KFold(n_splits=5, shuffle=True, random_state=42)`; report **OOF SMAPE**.
-- **Post-processing:** `expm1` inverse transform; **clip ≥ 0** to meet constraints.
-- **Reproducibility:** fixed seeds, deterministic scikit-learn; artifacts saved (`vectorizers`, `scaler`, `model`, `cv_summary.json`).
+# 4) Train + Predict (text‑only)
+python -m src.train_textonly --data_dir ./student_resource/dataset --out_dir ./outputs --folds 5 --alpha 3.0 --max_features 200000
 
----
+# 5) Your submission file:
+ls outputs/test_out.csv
+```
 
-## Feature Engineering Techniques Applied
-- **Unit/Pack parsing:** robust regex covering `kg/g/l/ml/lb/oz/fl-oz` and multiplicative forms (`k × qty unit`).
-- **Quantity normalization:** convert to common bases (g, ml); compute **per-unit** and **total** measures.
-- **Character n-grams:** capture SKUs, hyphenated strings, and unit patterns missed by word tokens.
-- **Light text cleanup:** remove boilerplate; keep digits/units intact.
+## What’s inside
+- `src/train_textonly.py` – main script: TF‑IDF(1–2‑gram, min_df=5, max_features=200k) + numeric regex features → Ridge.
+- `src/utils.py` – SMAPE metric + feature extraction.
+- `src/image_embeddings_optional.py` – optional script to precompute image features (if you want to extend the model).
+- `requirements.txt`
 
----
+## Tips to Improve Score
+- Tune Ridge `alpha` & TF‑IDF `max_features`.
+- Add character n‑grams in TF‑IDF.
+- Stack 2‑3 linear models (Ridge, Lasso, ElasticNet) on TF‑IDF and average predictions.
+- SVD‑compress TF‑IDF then use tree models (e.g., XGBoost/LightGBM) on dense 256–1024D embeddings.
+- Add **image embeddings** (EfficientNet‑B0 headless) and concatenate with text features.
 
-## Results (Validation)
-- **5-Fold OOF SMAPE:** **51.2705%**  
-  (per-fold: 51.8822, 51.1363, 51.3781, 50.5367, 51.4191)
-- The largest gains came from **char n-grams** and **quantity normalization**; log-target further stabilized relative error.
+## Reproducibility
+- Uses fixed `random_state=42`.
+- Saves `outputs/artifacts.joblib` and `outputs/cv_summary.json`.
 
----
-
-## Submission Outputs
-- Generated `outputs/test_out.csv` with **two columns exactly**: `sample_id,price` (same order/count as `test.csv`, all prices ≥ 0).
-- No external data, scraping, or price lookups used.
-
----
-
-## Notes & Future Improvements
-- Add **brand target encoding** (KFold mean price by heuristic brand) and/or **segment models** (weight/liquid/other).
-- Lightweight **SVD + tree booster** blended with Ridge, and optional **image embeddings** for incremental gains.
-
+## Submission
+Upload `outputs/test_out.csv` (two columns: `sample_id,price`). Ensure the row count equals `test.csv`.
+Also submit a 1‑page methodology doc; see `Documentation.md` we generated separately.
